@@ -4,28 +4,41 @@ from agents import DeepSeekAgent, GoogleGeminiAgent, PerplexityAgent, MockAgent
 
 st.set_page_config(page_title="AI Debate: Future of Ads", layout="wide")
 
+# Custom CSS for larger text
+st.markdown("""
+<style>
+    .stChatMessage p {
+        font-size: 1.2rem !important;
+        line-height: 1.6 !important;
+    }
+    .stMarkdown p {
+        font-size: 1.1rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🤖 AI 토론: 광고의 현재와 미래")
 
 # Sidebar for Configuration
 with st.sidebar:
     st.header("설정 (Configuration)")
     
-    with st.expander("API 키 설정 (API Keys)", expanded=True):
+    with st.expander("API 키 설정 (API Keys)", expanded=False):
         deepseek_key = st.text_input("DeepSeek API Key", type="password")
         google_key = st.text_input("Google Gemini API Key", type="password")
         perplexity_key = st.text_input("Perplexity API Key", type="password")
     
     st.divider()
-    st.header("프롬프트 설정 (System Prompts)")
     
-    # Default Prompts in Korean
-    default_deepseek_prompt = "당신은 기술 분석가(Analyst)입니다. 광고 시장의 기술적 기반, 알고리즘, 데이터 처리 방식, 그리고 기술적 실현 가능성에 초점을 맞춥니다. 논리적이고 분석적인 태도로 토론에 참여하세요."
-    default_google_prompt = "당신은 창의적인 비전가(Creative Visionary)입니다. 사용자 경험(UX), 스토리텔링, 그리고 새로운 광고 포맷의 창의적 잠재력에 초점을 맞춥니다. 감성적이고 미래지향적인 태도로 토론에 참여하세요."
-    default_perplexity_prompt = "당신은 팩트 중심의 연구원(Researcher)입니다. 시장 통계, 실제 사례, 데이터, 그리고 검증된 사실에 초점을 맞춥니다. 객관적이고 근거 중심적인 태도로 토론에 참여하세요."
+    with st.expander("프롬프트 설정 (System Prompts)", expanded=False):
+        # Default Prompts in Korean
+        default_deepseek_prompt = "당신은 기술 분석가(Analyst)입니다. 광고 시장의 기술적 기반, 알고리즘, 데이터 처리 방식, 그리고 기술적 실현 가능성에 초점을 맞춥니다. 논리적이고 분석적인 태도로 토론에 참여하세요."
+        default_google_prompt = "당신은 창의적인 비전가(Creative Visionary)입니다. 사용자 경험(UX), 스토리텔링, 그리고 새로운 광고 포맷의 창의적 잠재력에 초점을 맞춥니다. 감성적이고 미래지향적인 태도로 토론에 참여하세요."
+        default_perplexity_prompt = "당신은 팩트 중심의 연구원(Researcher)입니다. 시장 통계, 실제 사례, 데이터, 그리고 검증된 사실에 초점을 맞춥니다. 객관적이고 근거 중심적인 태도로 토론에 참여하세요."
 
-    deepseek_prompt = st.text_area("DeepSeek (딥씨크) 프롬프트", value=default_deepseek_prompt, height=150)
-    google_prompt = st.text_area("Google Gemini (제미나이) 프롬프트", value=default_google_prompt, height=150)
-    perplexity_prompt = st.text_area("Perplexity (퍼플렉시티) 프롬프트", value=default_perplexity_prompt, height=150)
+        deepseek_prompt = st.text_area("DeepSeek (딥씨크) 프롬프트", value=default_deepseek_prompt, height=150)
+        google_prompt = st.text_area("Google Gemini (제미나이) 프롬프트", value=default_google_prompt, height=150)
+        perplexity_prompt = st.text_area("Perplexity (퍼플렉시티) 프롬프트", value=default_perplexity_prompt, height=150)
 
 # Initialize Session State
 if "history" not in st.session_state:

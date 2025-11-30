@@ -28,9 +28,9 @@ class DeepSeekAgent(DebateAgent):
     def generate_response(self, context: str) -> str:
         try:
             messages = [
-                {"role": "system", "content": f"You are {self.name}. Your role is: {self.role}. Participate in the debate."}
+                {"role": "system", "content": f"You are {self.name}. Your role is: {self.role}. Participate in the debate. IMPORTANT: You must answer in Korean."}
             ]
-            messages.append({"role": "user", "content": context})
+            messages.append({"role": "user", "content": context + "\n\n(한국어로 답변해주세요)"})
 
             response = self.client.chat.completions.create(
                 model="deepseek-chat", 
@@ -51,9 +51,9 @@ class PerplexityAgent(DebateAgent):
     def generate_response(self, context: str) -> str:
         try:
             messages = [
-                {"role": "system", "content": f"You are {self.name}. Your role is: {self.role}. Participate in the debate."}
+                {"role": "system", "content": f"You are {self.name}. Your role is: {self.role}. Participate in the debate. IMPORTANT: You must answer in Korean."}
             ]
-            messages.append({"role": "user", "content": context})
+            messages.append({"role": "user", "content": context + "\n\n(한국어로 답변해주세요)"})
 
             response = self.client.chat.completions.create(
                 model="llama-3.1-sonar-large-128k-online", 
@@ -71,7 +71,7 @@ class GoogleGeminiAgent(DebateAgent):
 
     def generate_response(self, context: str) -> str:
         try:
-            prompt = f"System: You are {self.name}. Your role is: {self.role}. Participate in the debate.\n\nContext:\n{context}"
+            prompt = f"System: You are {self.name}. Your role is: {self.role}. Participate in the debate. IMPORTANT: You must answer in Korean.\n\nContext:\n{context}\n\n(한국어로 답변해주세요)"
             response = self.model.generate_content(prompt)
             return response.text
         except Exception as e:
@@ -79,4 +79,4 @@ class GoogleGeminiAgent(DebateAgent):
 
 class MockAgent(DebateAgent):
     def generate_response(self, context: str) -> str:
-        return f"[{self.name} Mock Response] I agree/disagree with the previous point about advertising because..."
+        return f"[{self.name} Mock Response] (한국어로 답변) 광고의 미래에 대해 동의/반대합니다. 왜냐하면..."
