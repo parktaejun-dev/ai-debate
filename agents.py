@@ -56,7 +56,7 @@ class PerplexityAgent(DebateAgent):
             messages.append({"role": "user", "content": context + "\n\n(한국어로 답변해주세요)"})
 
             response = self.client.chat.completions.create(
-                model="llama-3.1-sonar-large-128k-online", 
+                model="llama-3.1-sonar-huge-128k-online", 
                 messages=messages
             )
             return response.choices[0].message.content
