@@ -3,11 +3,12 @@ from agents import DeepSeekAgent, GoogleGeminiAgent, PerplexityAgent, MockAgent
 
 st.set_page_config(page_title="AI 토론: 광고의 미래", layout="wide")
 
-# 스타일 설정: 가독성 높임
+# 스타일 설정: 가독성 높임 (글씨 크기 3배 확대)
 st.markdown("""
 <style>
-    .stChatMessage p { font-size: 1.1rem !important; line-height: 1.6 !important; }
-    .role-label { font-weight: bold; color: #4CAF50; }
+    .stChatMessage p { font-size: 3.0rem !important; line-height: 1.6 !important; }
+    .role-label { font-weight: bold; color: #4CAF50; font-size: 2.0rem !important; }
+    .stButton button { font-size: 2.0rem !important; height: 4rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,20 +90,25 @@ agents = get_agents()
 
 # --- 채팅 기록 화면 표시 ---
 for message in st.session_state.history:
-    # 아바타 설정: assets 폴더의 이미지 사용
+    # 사회자일 경우: 아바타 없이 큰 이미지 출력
     if "사회자" in message["role"]:
-        avatar = "assets/moderator.jpg"
-    elif "기술" in message["role"]:
-        avatar = "assets/tech_expert.png"
+        with st.chat_message(message["role"], avatar=None):
+            st.image("assets/moderator.jpg", width=400) # 10배 확대 (약 400px)
+            st.write(f"**{message['role']}**: {message['content']}")
+    
+    # 다른 패널일 경우: 일반 아바타 사용
     else:
-        avatar = "assets/analyst.jpg"
-        
-    with st.chat_message(message["role"], avatar=avatar):
-        st.write(f"**{message['role']}**: {message['content']}")
+        if "기술" in message["role"]:
+            avatar = "assets/tech_expert.png"
+        else:
+            avatar = "assets/analyst.jpg"
+            
+        with st.chat_message(message["role"], avatar=avatar):
+            st.write(f"**{message['role']}**: {message['content']}")
 
 # --- 토론 진행 로직 ---
-# 순서: 사회자 -> 기술 -> 분석 -> 기술 -> 분석 -> 사회자(결론)
-TURN_SEQUENCE = [0, 1, 2, 1, 2, 0] 
+# 순서: 사회자(0) + [기술(1) -> 분석(2)] * 30회 + 사회자(0)
+TURN_SEQUENCE = [0] + [1, 2] * 30 + [0]
 MAX_TURNS = len(TURN_SEQUENCE)
 
 col1, col2 = st.columns([1, 4])
@@ -110,12 +116,12 @@ col1, col2 = st.columns([1, 4])
 with col1:
     # 진행 상태에 따른 버튼 텍스트 변경
     if st.session_state.turn_count < MAX_TURNS:
-        btn_label = "🗣️ 토론 진행 (Next Turn)"
+        btn_label = f"🗣️ 토론 진행 ({st.session_state.turn_count + 1}/{MAX_TURNS})"
         btn_type = "primary"
         
         # 마지막 턴일 경우 버튼 강조
         if st.session_state.turn_count == MAX_TURNS - 1:
-            btn_label = "🏁 대타협 및 결론 도출 (Conclusion)"
+            btn_label = "🏁 평가 및 결론 도출 (Evaluation)"
             btn_type = "secondary" 
             
         if st.button(btn_label, type=btn_type, use_container_width=True):
@@ -126,18 +132,20 @@ with col1:
             
             # 2. 문맥(Context) 구성
             context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
-            for msg in st.session_state.history:
+            # 최근 10개 대화만 전달하여 컨텍스트 길이 관리 (필요시 조정)
+            recent_history = st.session_state.history[-10:]
+            for msg in recent_history:
                 context += f"{msg['role']}: {msg['content']}\n"
             
             # 3. 상황별 프롬프트 주입 (중요!)
             
-            # [마지막 턴: 사회자] -> 산업 전반에 대한 통찰과 합의점 도출
+            # [마지막 턴: 사회자] -> 평가 및 결론
             if st.session_state.turn_count == MAX_TURNS - 1:
                 context += """
-                \n(중요 지시: 이제 토론을 마무리하고 결론을 내려야 합니다.
+                \n(중요 지시: 이제 토론을 마무리하고 평가를 내려야 합니다.
                 다음 형식을 지켜서 답변하세요:
-                1. 기술(효율성)과 인간(진정성) 양측의 입장을 균형 있게 요약하세요.
-                2. '미래의 광고가 나아가야 할 방향'에 대해 통찰력 있는 대타협(Synthesis)을 제시하세요.
+                1. '기술전문가'와 '시장분석가'의 발언을 바탕으로 **'통찰력(Insight)' 점수**를 100점 만점으로 평가하세요.
+                2. 점수가 높은 순서대로 순위를 매기고, 그 이유를 간략히 설명하세요.
                 3. 마지막으로 청중들이 기억해야 할 **'광고의 미래 핵심 키워드 3가지'**를 선정해 정리해주세요.
                 4. 희망차고 여운이 남는 멘트로 토론을 종료하세요.)
                 """
@@ -170,7 +178,7 @@ with col1:
         # 결론 부분만 별도 카드로 강조 (마지막 메시지)
         if st.session_state.history:
             last_msg = st.session_state.history[-1]['content']
-            st.info(f"📋 **Final Insight**\n\n{last_msg}")
+            st.info(f"📋 **Final Evaluation**\n\n{last_msg}")
         
         if st.button("🔄 새로운 토론 시작"):
             st.session_state.history = []
