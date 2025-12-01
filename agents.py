@@ -67,7 +67,7 @@ class GoogleGeminiAgent(DebateAgent):
     def __init__(self, name: str, role: str, api_key: str):
         super().__init__(name, role, api_key)
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
 
     def generate_response(self, context: str) -> str:
         try:
