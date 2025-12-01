@@ -56,7 +56,8 @@ with st.sidebar:
         2. 중립적이지만 통찰력 있는 시각을 유지하세요.
         3. 너무 길게 말하지 말고(3~4문장), 핵심을 짚어준 뒤 특정 토론자에게 발언권을 넘기세요.
         4. 청중이 이해하기 쉬운 비유를 사용하세요.
-        5. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요."""
+        5. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요.
+        6. 답변은 1~2문장으로 아주 짧고 간결하게 하세요."""
         
         # 기술 전문가 (DeepSeek) 프롬프트
         default_tech_prompt = """당신은 '기술 낙관론자'이자 데이터 과학자입니다.
@@ -64,7 +65,8 @@ with st.sidebar:
         1. 인간의 감보다 데이터/알고리즘의 효율성을 강조하세요.
         2. 생성형 AI, 초개인화 타겟팅 기술을 옹호하세요.
         3. 상대방(시장분석가)이 우려를 표하면 기술적 해결책으로 반박하세요.
-        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요."""
+        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요.
+        5. 답변은 1~2문장으로 아주 짧고 간결하게 하세요."""
         
         # 시장 분석가 (Perplexity) 프롬프트
         default_analyst_prompt = """당신은 '시장 분석가'이자 소비자 대변인입니다.
@@ -72,7 +74,8 @@ with st.sidebar:
         1. 프라이버시 침해, 광고 피로도, AI의 저작권 문제 등 현실적 리스크를 지적하세요.
         2. 실제 시장 사례나 통계를 근거로 드는 것을 선호합니다.
         3. 상대방(기술전문가)의 기술 만능주의를 경계하세요.
-        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요."""
+        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요.
+        5. 답변은 1~2문장으로 아주 짧고 간결하게 하세요."""
 
         moderator_prompt = st.text_area("사회자(Gemini) 프롬프트", value=default_moderator_prompt, height=150)
         tech_prompt = st.text_area("기술전문가(DeepSeek) 프롬프트", value=default_tech_prompt, height=150)
@@ -178,8 +181,8 @@ for message in st.session_state.history:
         """, unsafe_allow_html=True)
 
 # --- 토론 진행 로직 ---
-# 순서: 사회자(0) + [기술(1) -> 분석(2)] * 30회 + 사회자(0)
-TURN_SEQUENCE = [0] + [1, 2] * 30 + [0]
+# 순서: 사회자(0) + [기술(1) -> 분석(2) -> 사회자(0)] * 15회 + 사회자(0)
+TURN_SEQUENCE = [0] + [1, 2, 0] * 15 + [0]
 MAX_TURNS = len(TURN_SEQUENCE)
 
 col1, col2 = st.columns([1, 4])
@@ -297,3 +300,16 @@ with col1:
 
 with col2:
     pass
+
+# Auto-scroll to bottom
+st.markdown(
+    """
+    <script>
+        var element = window.parent.document.getElementById("root"); 
+        if (element) {
+            element.scrollTop = element.scrollHeight;
+        }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
