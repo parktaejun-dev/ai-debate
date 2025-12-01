@@ -89,8 +89,14 @@ agents = get_agents()
 
 # --- 채팅 기록 화면 표시 ---
 for message in st.session_state.history:
-    # 아이콘 설정: 역할에 따라 다르게
-    avatar = "🧑‍🏫" if "사회자" in message["role"] else ("🤖" if "기술" in message["role"] else "📊")
+    # 아바타 설정: assets 폴더의 이미지 사용
+    if "사회자" in message["role"]:
+        avatar = "assets/moderator.jpg"
+    elif "기술" in message["role"]:
+        avatar = "assets/tech_expert.png"
+    else:
+        avatar = "assets/analyst.jpg"
+        
     with st.chat_message(message["role"], avatar=avatar):
         st.write(f"**{message['role']}**: {message['content']}")
 
