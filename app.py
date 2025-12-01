@@ -2,7 +2,7 @@ import streamlit as st
 import time
 from agents import DeepSeekAgent, GoogleGeminiAgent, PerplexityAgent, MockAgent
 
-st.set_page_config(page_title="AI 토론: 광고의 미래", layout="wide")
+st.set_page_config(page_title="AI 토론: 광고의 미래", layout="wide", initial_sidebar_state="collapsed")
 
 # 스타일 설정
 st.markdown("""
@@ -235,50 +235,49 @@ with col1:
     else:
         # 수동 모드 또는 종료 상태
         if st.session_state.turn_count < MAX_TURNS:
-            # 버튼 2개: 다음 턴(수동) / 자동 시작
-            sub_col1, sub_col2 = st.columns(2)
-            with sub_col1:
-                if st.button(f"🗣️ 다음 턴 (Next Turn) ({st.session_state.turn_count + 1}/{MAX_TURNS})", type="primary", use_container_width=True):
-                    # 수동 진행 로직 (위와 동일, 중복 제거를 위해 함수화하면 좋지만 일단 복사)
-                    current_agent_idx = TURN_SEQUENCE[st.session_state.turn_count]
-                    current_agent = agents[current_agent_idx]
-                    context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
-                    recent_history = st.session_state.history[-10:]
-                    for msg in recent_history:
-                        context += f"{msg['role']}: {msg['content']}\n"
-                    
-                    if st.session_state.turn_count == MAX_TURNS - 1:
-                        context += "\n(중요 지시: 마무리 평가 및 결론 도출...)" # 간략화, 실제로는 위와 동일해야 함
-                        # (위의 상세 프롬프트 복사 필요)
-                        context += """
-                        \n(중요 지시: 이제 토론을 마무리하고 평가를 내려야 합니다.
-                        다음 형식을 지켜서 답변하세요:
-                        1. '기술전문가'와 '시장분석가'의 발언을 바탕으로 **'통찰력(Insight)' 점수**를 100점 만점으로 평가하세요.
-                        2. 점수가 높은 순서대로 순위를 매기고, 그 이유를 간략히 설명하세요.
-                        3. 마지막으로 청중들이 기억해야 할 **'광고의 미래 핵심 키워드 3가지'**를 선정해 정리해주세요.
-                        4. 희망차고 여운이 남는 멘트로 토론을 종료하세요.)
-                        """
-                    elif st.session_state.turn_count == 0:
-                        context += "\n(지시: 토론을 시작합니다...)"
-                        context += "\n(지시: 토론을 시작합니다. 청중들에게 반갑게 인사하고, 두 패널(기술전문가, 시장분석가)을 소개한 뒤 '기술이 광고를 어떻게 재정의하고 있는가?'라는 첫 화두를 던지세요.)"
-                    elif current_agent_idx == 1:
-                        context += "\n(지시: 기술 낙관론자로서...)"
-                        context += "\n(지시: 기술 낙관론자로서, AI와 데이터가 가져올 혁신과 효율성을 강조하세요. 인간의 개입을 최소화하는 것이 미래라고 강력히 주장하세요.)"
-                    elif current_agent_idx == 2:
-                        context += "\n(지시: 시장 분석가로서...)"
-                        context += "\n(지시: 시장 분석가로서, 기술보다 중요한 것은 '소비자의 공감'과 '브랜드 윤리'임을 강조하세요. 기술 만능주의가 가져올 부작용을 지적하세요.)"
+            # 버튼 레이아웃 수정: 세로로 배치하여 깨짐 방지
+            if st.button(f"🗣️ 다음 턴 (Next Turn) ({st.session_state.turn_count + 1}/{MAX_TURNS})", type="primary", use_container_width=True):
+                # 수동 진행 로직 (위와 동일, 중복 제거를 위해 함수화하면 좋지만 일단 복사)
+                current_agent_idx = TURN_SEQUENCE[st.session_state.turn_count]
+                current_agent = agents[current_agent_idx]
+                context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
+                recent_history = st.session_state.history[-10:]
+                for msg in recent_history:
+                    context += f"{msg['role']}: {msg['content']}\n"
+                
+                if st.session_state.turn_count == MAX_TURNS - 1:
+                    context += "\n(중요 지시: 마무리 평가 및 결론 도출...)" # 간략화, 실제로는 위와 동일해야 함
+                    # (위의 상세 프롬프트 복사 필요)
+                    context += """
+                    \n(중요 지시: 이제 토론을 마무리하고 평가를 내려야 합니다.
+                    다음 형식을 지켜서 답변하세요:
+                    1. '기술전문가'와 '시장분석가'의 발언을 바탕으로 **'통찰력(Insight)' 점수**를 100점 만점으로 평가하세요.
+                    2. 점수가 높은 순서대로 순위를 매기고, 그 이유를 간략히 설명하세요.
+                    3. 마지막으로 청중들이 기억해야 할 **'광고의 미래 핵심 키워드 3가지'**를 선정해 정리해주세요.
+                    4. 희망차고 여운이 남는 멘트로 토론을 종료하세요.)
+                    """
+                elif st.session_state.turn_count == 0:
+                    context += "\n(지시: 토론을 시작합니다...)"
+                    context += "\n(지시: 토론을 시작합니다. 청중들에게 반갑게 인사하고, 두 패널(기술전문가, 시장분석가)을 소개한 뒤 '기술이 광고를 어떻게 재정의하고 있는가?'라는 첫 화두를 던지세요.)"
+                elif current_agent_idx == 1:
+                    context += "\n(지시: 기술 낙관론자로서...)"
+                    context += "\n(지시: 기술 낙관론자로서, AI와 데이터가 가져올 혁신과 효율성을 강조하세요. 인간의 개입을 최소화하는 것이 미래라고 강력히 주장하세요.)"
+                elif current_agent_idx == 2:
+                    context += "\n(지시: 시장 분석가로서...)"
+                    context += "\n(지시: 시장 분석가로서, 기술보다 중요한 것은 '소비자의 공감'과 '브랜드 윤리'임을 강조하세요. 기술 만능주의가 가져올 부작용을 지적하세요.)"
 
-                    with st.spinner(f"{current_agent.name} 생각 정리 중..."):
-                        response = current_agent.generate_response(context)
-                    
-                    st.session_state.history.append({"role": current_agent.name, "content": response})
-                    st.session_state.turn_count += 1
-                    st.rerun()
+                with st.spinner(f"{current_agent.name} 생각 정리 중..."):
+                    response = current_agent.generate_response(context)
+                
+                st.session_state.history.append({"role": current_agent.name, "content": response})
+                st.session_state.turn_count += 1
+                st.rerun()
 
-            with sub_col2:
-                if st.button("▶️ 자동 진행 시작 (Start Auto-Play)", type="secondary", use_container_width=True):
-                    st.session_state.is_auto_playing = True
-                    st.rerun()
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True) # 간격 추가
+
+            if st.button("▶️ 자동 진행 시작 (Start Auto-Play)", type="secondary", use_container_width=True):
+                st.session_state.is_auto_playing = True
+                st.rerun()
             
         else:
             # --- 종료 화면 ---
