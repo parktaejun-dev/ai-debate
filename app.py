@@ -260,13 +260,26 @@ def determine_next_speaker(current_idx, response_content, history):
         return 1
 
     if current_idx == 0: # 사회자 발언 후
-        # 발언 내용 분석하여 지목
-        if "시장" in response_content or "분석" in response_content or "Perplexity" in response_content or "퍼플렉시티" in response_content or "두 번째" in response_content:
-            if st.session_state.analyst_turn_count < 5:
-                return 2 # 시장분석가
-        elif "기술" in response_content or "전문가" in response_content or "DeepSeek" in response_content or "딥시크" in response_content or "첫 번째" in response_content:
-            if st.session_state.tech_turn_count < 5:
+        # 발언 내용 분석하여 지목 (마지막에 언급된 사람을 우선)
+        tech_keywords = ["기술", "전문가", "DeepSeek", "딥시크", "첫 번째"]
+        analyst_keywords = ["시장", "분석", "Perplexity", "퍼플렉시티", "두 번째"]
+        
+        last_tech_idx = -1
+        for k in tech_keywords:
+            last_tech_idx = max(last_tech_idx, response_content.rfind(k))
+            
+        last_analyst_idx = -1
+        for k in analyst_keywords:
+            last_analyst_idx = max(last_analyst_idx, response_content.rfind(k))
+        
+        # 인덱스 비교
+        if last_tech_idx > last_analyst_idx and last_tech_idx != -1:
+             if st.session_state.tech_turn_count < 5:
                 return 1 # 기술전문가
+        elif last_analyst_idx > last_tech_idx and last_analyst_idx != -1:
+             if st.session_state.analyst_turn_count < 5:
+                return 2 # 시장분석가
+
         
         # 명시적 지목이 없거나, 지목된 사람이 이미 5회 채운 경우
         # 발언 횟수가 적은 사람 우선
