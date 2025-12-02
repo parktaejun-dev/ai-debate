@@ -181,8 +181,8 @@ for message in st.session_state.history:
         """, unsafe_allow_html=True)
 
 # --- 토론 진행 로직 ---
-# 순서: 사회자(0) + [기술(1) -> 분석(2) -> 사회자(0)] * 15회 + 사회자(0)
-TURN_SEQUENCE = [0] + [1, 2, 0] * 15 + [0]
+# 순서: 사회자(0) + [기술(1) -> 분석(2) -> 사회자(0)] * 10회 + 사회자(0)
+TURN_SEQUENCE = [0] + [1, 2, 0] * 10 + [0]
 MAX_TURNS = len(TURN_SEQUENCE)
 
 col1, col2 = st.columns([1, 4])
