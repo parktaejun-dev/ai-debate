@@ -42,7 +42,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🎙️ AI 토론: 광고의 미래 (The Future of Ads)")
-st.caption("사회자(Gemini), 기술전문가(DeepSeek), 시장분석가(Perplexity)의 3자 토론")
+st.markdown("""
+<div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #2196F3; margin-bottom: 20px;">
+    <p style="font-size: 1.8rem; font-weight: bold; color: #2c3e50; margin: 0; line-height: 1.4;">
+        "AI가 광고를 구원할 것인가, 아니면 소비자를 소외시킬 것인가?"
+    </p>
+    <p style="font-size: 1.4rem; color: #546e7a; margin-top: 15px; line-height: 1.6;">
+        기술의 정점에서 외치는 <b>기술 전문가(DeepSeek)</b>와<br>
+        인간의 가치를 수호하는 <b>시장 분석가(Perplexity)</b>.<br>
+        그리고 이들의 치열한 논쟁을 중재하는 <b>사회자(Gemini)</b>가 펼치는<br>
+        미래 예측 토론에 여러분을 초대합니다.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 # --- 사이드바: 설정 ---
 with st.sidebar:
