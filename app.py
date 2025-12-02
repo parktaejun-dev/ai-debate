@@ -243,12 +243,16 @@ def determine_next_speaker(current_idx, response_content, history):
     if st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5:
         return 0 # 사회자에게 넘겨서 마무리
     
+    # 0. 시작 단계 강제 지정 (기술전문가 먼저)
+    if st.session_state.tech_turn_count == 0 and st.session_state.analyst_turn_count == 0:
+        return 1
+
     if current_idx == 0: # 사회자 발언 후
         # 발언 내용 분석하여 지목
-        if "시장" in response_content or "분석" in response_content:
+        if "시장" in response_content or "분석" in response_content or "Perplexity" in response_content or "퍼플렉시티" in response_content or "두 번째" in response_content:
             if st.session_state.analyst_turn_count < 5:
                 return 2 # 시장분석가
-        elif "기술" in response_content or "전문가" in response_content:
+        elif "기술" in response_content or "전문가" in response_content or "DeepSeek" in response_content or "딥시크" in response_content or "첫 번째" in response_content:
             if st.session_state.tech_turn_count < 5:
                 return 1 # 기술전문가
         
@@ -302,6 +306,7 @@ if st.session_state.turn_count == 0 and len(st.session_state.history) == 0:
         
         # 6. 다음 발언자 결정 (Dynamic)
         st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
+        st.toast(f"Next Speaker: {agents[st.session_state.next_speaker_idx].name}") # Debug
         
         st.rerun()
 
@@ -364,6 +369,7 @@ with col1:
         
         # 6. 다음 발언자 결정 (Dynamic)
         st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
+        st.toast(f"Next Speaker: {agents[st.session_state.next_speaker_idx].name}") # Debug
         
         # 잠시 대기 후 리런 (너무 빠르면 API 제한 걸릴 수 있음)
         time.sleep(1)
