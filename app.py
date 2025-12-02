@@ -338,6 +338,12 @@ if st.session_state.turn_count == 0 and len(st.session_state.history) == 0:
         st.session_state.history.append({"role": current_agent.name, "content": response})
         st.session_state.turn_count += 1
         
+        # [NEW] 종료 조건 체크 및 정지
+        if st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5:
+            st.session_state.is_auto_playing = False
+            st.toast("토론이 종료되었습니다. (Debate Finished)")
+            st.rerun()
+        
         # 6. 다음 발언자 결정 (Dynamic)
         st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
         st.toast(f"Next Speaker: {agents[st.session_state.next_speaker_idx].name}") # Debug
