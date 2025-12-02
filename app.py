@@ -259,6 +259,8 @@ def determine_next_speaker(current_idx, response_content, history):
 # --- 시작 버튼 (전체 너비) ---
 if st.session_state.turn_count == 0 and len(st.session_state.history) == 0:
     if st.button("🚀 토론 시작하기 (Start Debate)", type="primary", use_container_width=True):
+        st.session_state.is_auto_playing = True # 자동 진행 시작
+        
         # 1. 현재 발언자 선정 (Dynamic)
         current_agent_idx = st.session_state.next_speaker_idx
         current_agent = agents[current_agent_idx]
@@ -350,70 +352,15 @@ with col1:
         # 수동 모드 또는 종료 상태
         # 종료 조건: 두 패널 모두 5회 이상 발언 시
         if not (st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5):
-            # 버튼 레이아웃 수정: 2열 배치 (모바일 고려)
-            btn_col1, btn_col2 = st.columns(2)
-            
-            with btn_col1:
-                if st.button(f"🗣️ 다음 턴 (Next Turn)", type="primary", use_container_width=True):
-                    # 수동 진행 로직 (위와 동일, 중복 제거를 위해 함수화하면 좋지만 일단 복사)
-                    current_agent_idx = st.session_state.next_speaker_idx
-                    current_agent = agents[current_agent_idx]
-                    context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
-                    recent_history = st.session_state.history[-10:]
-                    for msg in recent_history:
-                        context += f"{msg['role']}: {msg['content']}\n"
-                    
-                    if st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5:
-                        current_agent_idx = 0
-                        current_agent = agents[0]
-                        context += "\n(중요 지시: 마무리 평가 및 결론 도출...)" # 간략화, 실제로는 위와 동일해야 함
-                        # (위의 상세 프롬프트 복사 필요)
-                        context += """
-                        \n(중요 지시: 이제 토론을 마무리하고 평가를 내려야 합니다.
-                        다음 형식을 지켜서 답변하세요:
-                        1. '기술전문가'와 '시장분석가'의 발언을 바탕으로 **'통찰력(Insight)' 점수**를 100점 만점으로 평가하세요.
-                        2. 점수가 높은 순서대로 순위를 매기고, 그 이유를 간략히 설명하세요.
-                        3. 마지막으로 청중들이 기억해야 할 **'광고의 미래 핵심 키워드 3가지'**를 선정해 정리해주세요.
-                        4. 희망차고 여운이 남는 멘트로 토론을 종료하세요.)
-                        """
-                    elif st.session_state.turn_count == 0:
-                        context += "\n(지시: 토론을 시작합니다...)"
-                        context += "\n(지시: 토론을 시작합니다. 청중들에게 반갑게 인사하고, 두 패널(기술전문가, 시장분석가)을 소개한 뒤 '기술이 광고를 어떻게 재정의하고 있는가?'라는 첫 화두를 던지세요.)"
-                    elif current_agent_idx == 1:
-                        context += "\n(지시: 기술 낙관론자로서...)"
-                        context += "\n(지시: 기술 낙관론자로서, AI와 데이터가 가져올 혁신과 효율성을 강조하세요. 인간의 개입을 최소화하는 것이 미래라고 강력히 주장하세요.)"
-                    elif current_agent_idx == 2:
-                        context += "\n(지시: 시장 분석가로서...)"
-                        context += "\n(지시: 시장 분석가로서, 기술보다 중요한 것은 '소비자의 공감'과 '브랜드 윤리'임을 강조하세요. 기술 만능주의가 가져올 부작용을 지적하세요.)"
-
-                    with st.spinner(f"{current_agent.name} 생각 정리 중..."):
-                        response = current_agent.generate_response(context)
-                    
-                    st.session_state.history.append({"role": current_agent.name, "content": response})
-                    st.session_state.turn_count += 1
-                    
-                    # 턴 카운트 증가
-                    if current_agent_idx == 1:
-                        st.session_state.tech_turn_count += 1
-                    elif current_agent_idx == 2:
-                        st.session_state.analyst_turn_count += 1
-                    
-                    st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
-                    
-                    st.rerun()
-
-            with btn_col2:
-                if st.button("▶️ 자동 진행 시작 (Start Auto-Play)", type="secondary", use_container_width=True):
-                    st.session_state.is_auto_playing = True
-                    st.rerun()
+            # 토론 진행 중이지만 자동 재생이 멈춘 경우 (일시정지 상태 등)
+            # 다시 자동 진행을 시작할 수 있는 버튼 제공
+             if st.button("▶️ 토론 계속하기 (Resume Auto-Play)", type="primary", use_container_width=True):
+                st.session_state.is_auto_playing = True
+                st.rerun()
             
         else:
             # --- 종료 화면 ---
-            st.success("✅ 토론이 성공적으로 종료되었습니다.")
-            if st.session_state.history:
-                last_msg = st.session_state.history[-1]['content']
-                st.info(f"📋 **Final Evaluation**\n\n{last_msg}")
-            
+            # (이미 위에서 처리됨 - final_evaluation_message)
             if st.button("🔄 새로운 토론 시작"):
                 st.session_state.history = []
                 st.session_state.turn_count = 0
@@ -422,6 +369,13 @@ with col1:
                 st.session_state.tech_turn_count = 0
                 st.session_state.analyst_turn_count = 0
                 st.rerun()
+
+# --- 토론 중지 버튼 (하단) ---
+if st.session_state.is_auto_playing:
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    if st.button("⏹️ 토론 중지 (Stop Debate)", type="secondary", use_container_width=True):
+        st.session_state.is_auto_playing = False
+        st.rerun()
 
 with col2:
     pass
