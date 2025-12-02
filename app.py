@@ -56,8 +56,7 @@ with st.sidebar:
         2. 중립적이지만 통찰력 있는 시각을 유지하세요.
         3. 너무 길게 말하지 말고(3~4문장), 핵심을 짚어준 뒤 특정 토론자에게 발언권을 넘기세요.
         4. 청중이 이해하기 쉬운 비유를 사용하세요.
-        5. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요.
-        6. 답변은 1~2문장으로 아주 짧고 간결하게 하세요."""
+        5. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요."""
         
         # 기술 전문가 (DeepSeek) 프롬프트
         default_tech_prompt = """당신은 '기술 낙관론자'이자 데이터 과학자입니다.
@@ -65,8 +64,7 @@ with st.sidebar:
         1. 인간의 감보다 데이터/알고리즘의 효율성을 강조하세요.
         2. 생성형 AI, 초개인화 타겟팅 기술을 옹호하세요.
         3. 상대방(시장분석가)이 우려를 표하면 기술적 해결책으로 반박하세요.
-        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요.
-        5. 답변은 1~2문장으로 아주 짧고 간결하게 하세요."""
+        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요."""
         
         # 시장 분석가 (Perplexity) 프롬프트
         default_analyst_prompt = """당신은 '시장 분석가'이자 소비자 대변인입니다.
@@ -74,8 +72,7 @@ with st.sidebar:
         1. 프라이버시 침해, 광고 피로도, AI의 저작권 문제 등 현실적 리스크를 지적하세요.
         2. 실제 시장 사례나 통계를 근거로 드는 것을 선호합니다.
         3. 상대방(기술전문가)의 기술 만능주의를 경계하세요.
-        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요.
-        5. 답변은 1~2문장으로 아주 짧고 간결하게 하세요."""
+        4. 인용문(' ')이나 강조하고 싶은 단어에 **(굵게)** 표시를 절대 사용하지 마세요. 그냥 ' '만 사용하세요."""
 
         moderator_prompt = st.text_area("사회자(Gemini) 프롬프트", value=default_moderator_prompt, height=150)
         tech_prompt = st.text_area("기술전문가(DeepSeek) 프롬프트", value=default_tech_prompt, height=150)
@@ -115,72 +112,97 @@ def get_agents():
 
 agents = get_agents()
 
-# --- 채팅 기록 화면 표시 (Custom UI) ---
-for message in st.session_state.history:
-    role = message["role"]
-    content = message["content"]
-    
-    # 설정: 색상 및 아바타
-    if "사회자" in role:
-        bg_color = "#E8F5E9" # Mint Green
-        border_color = "#4CAF50"
-        avatar_path = "assets/moderator.jpg"
-        text_color = "#1B5E20"
-    elif "기술" in role:
-        bg_color = "#E3F2FD" # Light Blue
-        border_color = "#2196F3"
-        avatar_path = "assets/tech_expert.png"
-        text_color = "#0D47A1"
-    else: # 시장분석가
-        bg_color = "#FFF3E0" # Light Orange
-        border_color = "#FF9800"
-        avatar_path = "assets/analyst.jpg"
-        text_color = "#E65100"
+# --- 채팅 기록 화면 표시 ---
+final_evaluation_message = None
 
-    # 레이아웃: 컬럼 사용 (아바타 160px 고정 느낌을 위해 비율 조정)
-    # [1, 6] 정도면 아바타 영역이 160px 정도 확보됨
-    col1, col2 = st.columns([1, 6])
+for message in st.session_state.history:
+    # 마지막 평가 메시지는 따로 저장하고 출력하지 않음 (나중에 전체 너비로 출력)
+    if "통찰력(Insight)' 점수" in message["content"] and "핵심 키워드" in message["content"]:
+        final_evaluation_message = message
+        continue
+
+    # 사회자일 경우: 아바타 없이 큰 이미지 출력
+    if "사회자" in message["role"]:
+        with st.chat_message(message["role"], avatar=None):
+            st.image("assets/moderator.jpg", width=400) # 10배 확대 (약 400px)
+            st.write(f"**{message['role']}**: {message['content']}")
     
-    with col1:
-        st.image(avatar_path, width=160) # 2배 확대 (160px)
+    # 다른 패널일 경우: 일반 아바타 사용
+    else:
+        if "기술" in message["role"]:
+            avatar_path = "assets/tech_expert.png"
+            bg_color = "#e3f2fd" # Light Blue
+            border_color = "#2196f3"
+            text_color = "#1565c0"
+        else:
+            avatar_path = "assets/analyst.jpg"
+            bg_color = "#fff3e0" # Light Orange
+            border_color = "#ff9800"
+            text_color = "#e65100"
+            
+        # 레이아웃: 컬럼 사용 (아바타 160px 고정 느낌을 위해 비율 조정)
+        # [1, 6] 정도면 아바타 영역이 160px 정도 확보됨
+        col_av, col_bub = st.columns([1, 6])
         
-    with col2:
-        st.markdown(f"""
-        <div style="
-            background-color: {bg_color};
-            border: 2px solid {border_color};
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            position: relative;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-        ">
+        with col_av:
+            st.image(avatar_path, width=160) # 2배 확대 (160px)
+            
+        with col_bub:
+            st.markdown(f"""
             <div style="
-                font-weight: bold;
-                font-size: 1.2rem;
-                color: {text_color};
-                margin-bottom: 10px;
-            ">{role}</div>
-            <div style="
-                font-size: 1.5rem; /* 가독성 좋은 크기 */
-                line-height: 1.6;
-                color: #333;
+                background-color: {bg_color};
+                border: 2px solid {border_color};
+                border-radius: 15px;
+                padding: 20px;
+                margin-bottom: 20px;
+                position: relative;
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
             ">
-                {content}
+                <div style="
+                    font-weight: bold;
+                    font-size: 1.2rem;
+                    color: {text_color};
+                    margin-bottom: 10px;
+                ">{message['role']}</div>
+                <div style="
+                    font-size: 1.5rem; /* 가독성 좋은 크기 */
+                    line-height: 1.6;
+                    color: #333;
+                ">
+                    {message['content']}
+                </div>
+                <!-- 말풍선 꼬리 효과 (CSS Trick) -->
+                <div style="
+                    position: absolute;
+                    top: 20px;
+                    left: -12px;
+                    width: 0; 
+                    height: 0; 
+                    border-top: 12px solid transparent;
+                    border-bottom: 12px solid transparent;
+                    border-right: 12px solid {border_color};
+                "></div>
             </div>
-            <!-- 말풍선 꼬리 효과 (CSS Trick) -->
-            <div style="
-                position: absolute;
-                top: 20px;
-                left: -12px;
-                width: 0; 
-                height: 0; 
-                border-top: 12px solid transparent;
-                border-bottom: 12px solid transparent; 
-                border-right: 12px solid {border_color}; 
-            "></div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+
+# --- 최종 평가 (전체 너비) ---
+if final_evaluation_message:
+    st.markdown("---")
+    st.success("🎉 토론이 성공적으로 종료되었습니다.")
+    st.markdown(f"### 🏆 최종 평가 및 결론 (Final Evaluation)")
+    st.image("assets/moderator.jpg", width=600) # 더 크게
+    st.markdown(f"""
+    <div style="
+        background-color: #f1f8e9;
+        border: 3px solid #4caf50;
+        border-radius: 20px;
+        padding: 30px;
+        font-size: 1.8rem;
+        line-height: 1.8;
+    ">
+        {final_evaluation_message['content']}
+    </div>
+    """, unsafe_allow_html=True)
 
 # --- 토론 진행 로직 ---
 # 동적 턴 진행을 위해 TURN_SEQUENCE는 참고용(최대 턴수 계산)으로만 사용하거나, 
@@ -218,6 +240,32 @@ def determine_next_speaker(current_idx, response_content, history):
              return 0
              
     return 0 # Fallback
+
+# --- 시작 버튼 (전체 너비) ---
+if st.session_state.turn_count == 0 and len(st.session_state.history) == 0:
+    if st.button("🚀 토론 시작하기 (Start Debate)", type="primary", use_container_width=True):
+        # 1. 현재 발언자 선정 (Dynamic)
+        current_agent_idx = st.session_state.next_speaker_idx
+        current_agent = agents[current_agent_idx]
+        
+        # 2. 문맥(Context) 구성
+        context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
+        
+        # 3. 상황별 프롬프트 주입
+        context += "\n(지시: 토론을 시작합니다. 청중들에게 반갑게 인사하고, 두 패널(기술전문가, 시장분석가)을 소개한 뒤 '기술이 광고를 어떻게 재정의하고 있는가?'라는 첫 화두를 던지세요.)"
+
+        # 4. 응답 생성
+        with st.spinner(f"{current_agent.name} 생각 정리 중..."):
+            response = current_agent.generate_response(context)
+        
+        # 5. 결과 저장 및 턴 넘기기
+        st.session_state.history.append({"role": current_agent.name, "content": response})
+        st.session_state.turn_count += 1
+        
+        # 6. 다음 발언자 결정 (Dynamic)
+        st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
+        
+        st.rerun()
 
 with col1:
     # 자동 진행 상태 확인
@@ -357,3 +405,10 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# --- 트랜스크립트 (전체 내용) ---
+with st.expander("📜 대화 전문 보기 (View Transcript)"):
+    full_transcript = ""
+    for msg in st.session_state.history:
+        full_transcript += f"[{msg['role']}]\n{msg['content']}\n\n"
+    st.text_area("전체 내용", value=full_transcript, height=400)
