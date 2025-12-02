@@ -9,7 +9,8 @@ st.markdown("""
 <style>
     .stChatMessage p { font-size: 3.0rem !important; line-height: 1.6 !important; }
     .role-label { font-weight: bold; color: #4CAF50; font-size: 2.0rem !important; }
-    .stButton button { font-size: 2.0rem !important; height: 4rem !important; }
+    /* 버튼 스타일 */
+    .stButton button { font-size: 2.0rem !important; height: 4rem !important; width: 100% !important; }
     
     /* Start/Resume Button (Primary) -> Blue */
     button[kind="primary"] {
@@ -374,9 +375,11 @@ with col1:
         if not (st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5):
             # 토론 진행 중이지만 자동 재생이 멈춘 경우 (일시정지 상태 등)
             # 다시 자동 진행을 시작할 수 있는 버튼 제공
-             if st.button("▶️ 토론 계속하기 (Resume Auto-Play)", type="primary", use_container_width=True):
-                st.session_state.is_auto_playing = True
-                st.rerun()
+            # 단, 토론이 시작된 이후에만 표시 (turn_count > 0)
+             if st.session_state.turn_count > 0:
+                 if st.button("▶️ 토론 계속하기 (Resume Auto-Play)", type="primary", use_container_width=True):
+                    st.session_state.is_auto_playing = True
+                    st.rerun()
             
         else:
             # --- 종료 화면 ---
