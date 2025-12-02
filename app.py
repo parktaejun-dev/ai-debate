@@ -11,22 +11,31 @@ st.markdown("""
     .role-label { font-weight: bold; color: #4CAF50; font-size: 2.0rem !important; }
     .stButton button { font-size: 2.0rem !important; height: 4rem !important; }
     
-    /* Start Button (Blue) - Targeting by text content using :has (Modern Browsers) */
-    div.stButton button:has(div p:contains("Start Debate")) {
+    /* Start/Resume Button (Primary) -> Blue */
+    button[kind="primary"] {
         background-color: #2196F3 !important;
         color: white !important;
         border: none !important;
     }
-    /* Fallback for Start Button if :has not supported (Targeting primary button at top) */
-    div[data-testid="stVerticalBlock"] > div:nth-child(3) div.stButton button {
-         /* This is risky, relying on :has is better or specific placement */
+    button[kind="primary"]:hover {
+        background-color: #1976D2 !important;
+        color: white !important;
     }
 
-    /* Stop Button (Red) */
-    div.stButton button:has(div p:contains("Stop Debate")) {
+    /* Stop/New Button (Secondary) -> Red */
+    button[kind="secondary"] {
         background-color: #F44336 !important;
         color: white !important;
-        border: none !important;
+        border: 1px solid #D32F2F !important;
+    }
+    button[kind="secondary"]:hover {
+        background-color: #D32F2F !important;
+        color: white !important;
+    }
+    
+    /* 텍스트 색상 강제 지정 (Streamlit 테마 오버라이드) */
+    button[kind="secondary"] p {
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
