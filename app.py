@@ -87,6 +87,10 @@ if "is_auto_playing" not in st.session_state:
     st.session_state.is_auto_playing = False
 if "next_speaker_idx" not in st.session_state:
     st.session_state.next_speaker_idx = 0 # Start with Moderator
+if "tech_turn_count" not in st.session_state:
+    st.session_state.tech_turn_count = 0
+if "analyst_turn_count" not in st.session_state:
+    st.session_state.analyst_turn_count = 0
 
 # --- 에이전트 생성 함수 ---
 def get_agents():
@@ -121,69 +125,67 @@ for message in st.session_state.history:
         final_evaluation_message = message
         continue
 
-    # 사회자일 경우: 아바타 없이 큰 이미지 출력
+    # 역할별 스타일 설정
     if "사회자" in message["role"]:
-        with st.chat_message(message["role"], avatar=None):
-            st.image("assets/moderator.jpg", width=400) # 10배 확대 (약 400px)
-            st.write(f"**{message['role']}**: {message['content']}")
-    
-    # 다른 패널일 경우: 일반 아바타 사용
-    else:
-        if "기술" in message["role"]:
-            avatar_path = "assets/tech_expert.png"
-            bg_color = "#e3f2fd" # Light Blue
-            border_color = "#2196f3"
-            text_color = "#1565c0"
-        else:
-            avatar_path = "assets/analyst.jpg"
-            bg_color = "#fff3e0" # Light Orange
-            border_color = "#ff9800"
-            text_color = "#e65100"
-            
-        # 레이아웃: 컬럼 사용 (아바타 160px 고정 느낌을 위해 비율 조정)
-        # [1, 6] 정도면 아바타 영역이 160px 정도 확보됨
-        col_av, col_bub = st.columns([1, 6])
+        avatar_path = "assets/moderator.jpg"
+        bg_color = "#E8F5E9" # Mint Green
+        border_color = "#4CAF50"
+        text_color = "#1B5E20"
+    elif "기술" in message["role"]:
+        avatar_path = "assets/tech_expert.png"
+        bg_color = "#e3f2fd" # Light Blue
+        border_color = "#2196f3"
+        text_color = "#1565c0"
+    else: # 시장분석가
+        avatar_path = "assets/analyst.jpg"
+        bg_color = "#fff3e0" # Light Orange
+        border_color = "#ff9800"
+        text_color = "#e65100"
         
-        with col_av:
-            st.image(avatar_path, width=160) # 2배 확대 (160px)
-            
-        with col_bub:
-            st.markdown(f"""
+    # 레이아웃: 컬럼 사용 (아바타 160px 고정 느낌을 위해 비율 조정)
+    # [1, 6] 정도면 아바타 영역이 160px 정도 확보됨
+    col_av, col_bub = st.columns([1, 6])
+    
+    with col_av:
+        st.image(avatar_path, width=160) # 2배 확대 (160px)
+        
+    with col_bub:
+        st.markdown(f"""
+        <div style="
+            background-color: {bg_color};
+            border: 2px solid {border_color};
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        ">
             <div style="
-                background-color: {bg_color};
-                border: 2px solid {border_color};
-                border-radius: 15px;
-                padding: 20px;
-                margin-bottom: 20px;
-                position: relative;
-                box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+                font-weight: bold;
+                font-size: 1.2rem;
+                color: {text_color};
+                margin-bottom: 10px;
+            ">{message['role']}</div>
+            <div style="
+                font-size: 1.5rem; /* 가독성 좋은 크기 */
+                line-height: 1.6;
+                color: #333;
             ">
-                <div style="
-                    font-weight: bold;
-                    font-size: 1.2rem;
-                    color: {text_color};
-                    margin-bottom: 10px;
-                ">{message['role']}</div>
-                <div style="
-                    font-size: 1.5rem; /* 가독성 좋은 크기 */
-                    line-height: 1.6;
-                    color: #333;
-                ">
-                    {message['content']}
-                </div>
-                <!-- 말풍선 꼬리 효과 (CSS Trick) -->
-                <div style="
-                    position: absolute;
-                    top: 20px;
-                    left: -12px;
-                    width: 0; 
-                    height: 0; 
-                    border-top: 12px solid transparent;
-                    border-bottom: 12px solid transparent;
-                    border-right: 12px solid {border_color};
-                "></div>
+                {message['content']}
             </div>
-            """, unsafe_allow_html=True)
+            <!-- 말풍선 꼬리 효과 (CSS Trick) -->
+            <div style="
+                position: absolute;
+                top: 20px;
+                left: -12px;
+                width: 0; 
+                height: 0; 
+                border-top: 12px solid transparent;
+                border-bottom: 12px solid transparent;
+                border-right: 12px solid {border_color};
+            "></div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # --- 최종 평가 (전체 너비) ---
 if final_evaluation_message:
@@ -216,28 +218,41 @@ col1, col2 = st.columns([1, 4])
 def determine_next_speaker(current_idx, response_content, history):
     # 0: 사회자, 1: 기술, 2: 분석
     
+    # 종료 조건 확인 (각 패널 5회 이상 발언 시)
+    if st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5:
+        return 0 # 사회자에게 넘겨서 마무리
+    
     if current_idx == 0: # 사회자 발언 후
         # 발언 내용 분석하여 지목
         if "시장" in response_content or "분석" in response_content:
-            return 2 # 시장분석가
+            if st.session_state.analyst_turn_count < 5:
+                return 2 # 시장분석가
         elif "기술" in response_content or "전문가" in response_content:
-            return 1 # 기술전문가
+            if st.session_state.tech_turn_count < 5:
+                return 1 # 기술전문가
+        
+        # 명시적 지목이 없거나, 지목된 사람이 이미 5회 채운 경우
+        # 발언 횟수가 적은 사람 우선
+        if st.session_state.tech_turn_count < st.session_state.analyst_turn_count:
+            if st.session_state.tech_turn_count < 5:
+                return 1
+        elif st.session_state.analyst_turn_count < st.session_state.tech_turn_count:
+            if st.session_state.analyst_turn_count < 5:
+                return 2
+        
+        # 둘 다 같으면 기본값 (기술전문가 우선, 단 5회 미만일 때)
+        if st.session_state.tech_turn_count < 5:
+            return 1
+        elif st.session_state.analyst_turn_count < 5:
+            return 2
         else:
-            return 1 # 기본값 (기술전문가) - 혹은 랜덤
+            return 0 # 둘 다 5회 이상이면 마무리
             
     elif current_idx == 1: # 기술전문가 발언 후
-        # 이전 발언자가 사회자였으면 -> 반론(시장분석가)
-        # 이전 발언자가 시장분석가였으면 -> 사회자 정리
-        if len(history) >= 1 and "사회자" in history[-1]['role']:
-             return 2
-        else:
-             return 0
+        return 0 # 사회자에게
              
     elif current_idx == 2: # 시장분석가 발언 후
-        if len(history) >= 1 and "사회자" in history[-1]['role']:
-             return 1
-        else:
-             return 0
+        return 0 # 사회자에게
              
     return 0 # Fallback
 
@@ -290,8 +305,9 @@ with col1:
             context += f"{msg['role']}: {msg['content']}\n"
         
         # 3. 상황별 프롬프트 주입
-        if st.session_state.turn_count == MAX_TURNS - 1:
-            # 강제로 사회자가 마무리하도록 처리 필요할 수 있음
+        # 종료 조건: 두 패널 모두 5회 이상 발언 시
+        if st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5:
+            # 강제로 사회자가 마무리하도록 처리
             current_agent_idx = 0
             current_agent = agents[0]
             context += """
@@ -317,6 +333,12 @@ with col1:
         st.session_state.history.append({"role": current_agent.name, "content": response})
         st.session_state.turn_count += 1
         
+        # 턴 카운트 증가
+        if current_agent_idx == 1:
+            st.session_state.tech_turn_count += 1
+        elif current_agent_idx == 2:
+            st.session_state.analyst_turn_count += 1
+        
         # 6. 다음 발언자 결정 (Dynamic)
         st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
         
@@ -326,55 +348,64 @@ with col1:
 
     else:
         # 수동 모드 또는 종료 상태
-        if st.session_state.turn_count < MAX_TURNS:
-            # 버튼 레이아웃 수정: 세로로 배치하여 깨짐 방지
-            if st.button(f"🗣️ 다음 턴 (Next Turn) ({st.session_state.turn_count + 1}/{MAX_TURNS})", type="primary", use_container_width=True):
-                # 수동 진행 로직 (위와 동일, 중복 제거를 위해 함수화하면 좋지만 일단 복사)
-                current_agent_idx = st.session_state.next_speaker_idx
-                current_agent = agents[current_agent_idx]
-                context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
-                recent_history = st.session_state.history[-10:]
-                for msg in recent_history:
-                    context += f"{msg['role']}: {msg['content']}\n"
-                
-                if st.session_state.turn_count == MAX_TURNS - 1:
-                    current_agent_idx = 0
-                    current_agent = agents[0]
-                    context += "\n(중요 지시: 마무리 평가 및 결론 도출...)" # 간략화, 실제로는 위와 동일해야 함
-                    # (위의 상세 프롬프트 복사 필요)
-                    context += """
-                    \n(중요 지시: 이제 토론을 마무리하고 평가를 내려야 합니다.
-                    다음 형식을 지켜서 답변하세요:
-                    1. '기술전문가'와 '시장분석가'의 발언을 바탕으로 **'통찰력(Insight)' 점수**를 100점 만점으로 평가하세요.
-                    2. 점수가 높은 순서대로 순위를 매기고, 그 이유를 간략히 설명하세요.
-                    3. 마지막으로 청중들이 기억해야 할 **'광고의 미래 핵심 키워드 3가지'**를 선정해 정리해주세요.
-                    4. 희망차고 여운이 남는 멘트로 토론을 종료하세요.)
-                    """
-                elif st.session_state.turn_count == 0:
-                    context += "\n(지시: 토론을 시작합니다...)"
-                    context += "\n(지시: 토론을 시작합니다. 청중들에게 반갑게 인사하고, 두 패널(기술전문가, 시장분석가)을 소개한 뒤 '기술이 광고를 어떻게 재정의하고 있는가?'라는 첫 화두를 던지세요.)"
-                elif current_agent_idx == 1:
-                    context += "\n(지시: 기술 낙관론자로서...)"
-                    context += "\n(지시: 기술 낙관론자로서, AI와 데이터가 가져올 혁신과 효율성을 강조하세요. 인간의 개입을 최소화하는 것이 미래라고 강력히 주장하세요.)"
-                elif current_agent_idx == 2:
-                    context += "\n(지시: 시장 분석가로서...)"
-                    context += "\n(지시: 시장 분석가로서, 기술보다 중요한 것은 '소비자의 공감'과 '브랜드 윤리'임을 강조하세요. 기술 만능주의가 가져올 부작용을 지적하세요.)"
+        # 종료 조건: 두 패널 모두 5회 이상 발언 시
+        if not (st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5):
+            # 버튼 레이아웃 수정: 2열 배치 (모바일 고려)
+            btn_col1, btn_col2 = st.columns(2)
+            
+            with btn_col1:
+                if st.button(f"🗣️ 다음 턴 (Next Turn)", type="primary", use_container_width=True):
+                    # 수동 진행 로직 (위와 동일, 중복 제거를 위해 함수화하면 좋지만 일단 복사)
+                    current_agent_idx = st.session_state.next_speaker_idx
+                    current_agent = agents[current_agent_idx]
+                    context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
+                    recent_history = st.session_state.history[-10:]
+                    for msg in recent_history:
+                        context += f"{msg['role']}: {msg['content']}\n"
+                    
+                    if st.session_state.tech_turn_count >= 5 and st.session_state.analyst_turn_count >= 5:
+                        current_agent_idx = 0
+                        current_agent = agents[0]
+                        context += "\n(중요 지시: 마무리 평가 및 결론 도출...)" # 간략화, 실제로는 위와 동일해야 함
+                        # (위의 상세 프롬프트 복사 필요)
+                        context += """
+                        \n(중요 지시: 이제 토론을 마무리하고 평가를 내려야 합니다.
+                        다음 형식을 지켜서 답변하세요:
+                        1. '기술전문가'와 '시장분석가'의 발언을 바탕으로 **'통찰력(Insight)' 점수**를 100점 만점으로 평가하세요.
+                        2. 점수가 높은 순서대로 순위를 매기고, 그 이유를 간략히 설명하세요.
+                        3. 마지막으로 청중들이 기억해야 할 **'광고의 미래 핵심 키워드 3가지'**를 선정해 정리해주세요.
+                        4. 희망차고 여운이 남는 멘트로 토론을 종료하세요.)
+                        """
+                    elif st.session_state.turn_count == 0:
+                        context += "\n(지시: 토론을 시작합니다...)"
+                        context += "\n(지시: 토론을 시작합니다. 청중들에게 반갑게 인사하고, 두 패널(기술전문가, 시장분석가)을 소개한 뒤 '기술이 광고를 어떻게 재정의하고 있는가?'라는 첫 화두를 던지세요.)"
+                    elif current_agent_idx == 1:
+                        context += "\n(지시: 기술 낙관론자로서...)"
+                        context += "\n(지시: 기술 낙관론자로서, AI와 데이터가 가져올 혁신과 효율성을 강조하세요. 인간의 개입을 최소화하는 것이 미래라고 강력히 주장하세요.)"
+                    elif current_agent_idx == 2:
+                        context += "\n(지시: 시장 분석가로서...)"
+                        context += "\n(지시: 시장 분석가로서, 기술보다 중요한 것은 '소비자의 공감'과 '브랜드 윤리'임을 강조하세요. 기술 만능주의가 가져올 부작용을 지적하세요.)"
 
-                with st.spinner(f"{current_agent.name} 생각 정리 중..."):
-                    response = current_agent.generate_response(context)
-                
-                st.session_state.history.append({"role": current_agent.name, "content": response})
-                st.session_state.turn_count += 1
-                
-                st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
-                
-                st.rerun()
+                    with st.spinner(f"{current_agent.name} 생각 정리 중..."):
+                        response = current_agent.generate_response(context)
+                    
+                    st.session_state.history.append({"role": current_agent.name, "content": response})
+                    st.session_state.turn_count += 1
+                    
+                    # 턴 카운트 증가
+                    if current_agent_idx == 1:
+                        st.session_state.tech_turn_count += 1
+                    elif current_agent_idx == 2:
+                        st.session_state.analyst_turn_count += 1
+                    
+                    st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
+                    
+                    st.rerun()
 
-            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True) # 간격 추가
-
-            if st.button("▶️ 자동 진행 시작 (Start Auto-Play)", type="secondary", use_container_width=True):
-                st.session_state.is_auto_playing = True
-                st.rerun()
+            with btn_col2:
+                if st.button("▶️ 자동 진행 시작 (Start Auto-Play)", type="secondary", use_container_width=True):
+                    st.session_state.is_auto_playing = True
+                    st.rerun()
             
         else:
             # --- 종료 화면 ---
@@ -388,6 +419,8 @@ with col1:
                 st.session_state.turn_count = 0
                 st.session_state.is_auto_playing = False
                 st.session_state.next_speaker_idx = 0
+                st.session_state.tech_turn_count = 0
+                st.session_state.analyst_turn_count = 0
                 st.rerun()
 
 with col2:
