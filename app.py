@@ -4,18 +4,29 @@ from agents import DeepSeekAgent, GoogleGeminiAgent, PerplexityAgent, MockAgent
 
 st.set_page_config(page_title="AI 토론: 광고의 미래", layout="wide", initial_sidebar_state="collapsed")
 
-# 스타일 설정
+# 스타일 설정: 가독성 높임 (글씨 크기 3배 확대) 및 버튼 스타일
 st.markdown("""
 <style>
-    /* 전체 폰트 크기 조정 */
-    html, body, [class*="css"] {
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    }
+    .stChatMessage p { font-size: 3.0rem !important; line-height: 1.6 !important; }
+    .role-label { font-weight: bold; color: #4CAF50; font-size: 2.0rem !important; }
+    .stButton button { font-size: 2.0rem !important; height: 4rem !important; }
     
-    /* 버튼 스타일 */
-    .stButton button {
-        font-size: 1.5rem !important;
-        height: 3.5rem !important;
+    /* Start Button (Blue) - Targeting by text content using :has (Modern Browsers) */
+    div.stButton button:has(div p:contains("Start Debate")) {
+        background-color: #2196F3 !important;
+        color: white !important;
+        border: none !important;
+    }
+    /* Fallback for Start Button if :has not supported (Targeting primary button at top) */
+    div[data-testid="stVerticalBlock"] > div:nth-child(3) div.stButton button {
+         /* This is risky, relying on :has is better or specific placement */
+    }
+
+    /* Stop Button (Red) */
+    div.stButton button:has(div p:contains("Stop Debate")) {
+        background-color: #F44336 !important;
+        color: white !important;
+        border: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -246,7 +257,7 @@ def determine_next_speaker(current_idx, response_content, history):
         elif st.session_state.analyst_turn_count < 5:
             return 2
         else:
-            return 0 # 둘 다 5회 이상이면 마무리
+            return 0 # 둘 다 5회 이상이면 마무리 (이 경우는 위에서 걸러짐)
             
     elif current_idx == 1: # 기술전문가 발언 후
         return 0 # 사회자에게
