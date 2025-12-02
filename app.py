@@ -312,6 +312,15 @@ if st.session_state.turn_count == 0 and len(st.session_state.history) == 0:
         with st.spinner(f"{current_agent.name} 생각 정리 중..."):
             response = current_agent.generate_response(context)
         
+        # 에러 처리
+        if response.startswith("Error generating response"):
+            st.error(f"⚠️ {current_agent.name} 오류 발생: {response}")
+            st.session_state.is_auto_playing = False
+            if st.button("🔄 다시 시도 (Retry)"):
+                st.rerun()
+            st.stop() # 여기서 중단
+
+        
         # 5. 결과 저장 및 턴 넘기기
         st.session_state.history.append({"role": current_agent.name, "content": response})
         st.session_state.turn_count += 1
@@ -368,6 +377,15 @@ with col1:
         # 4. 응답 생성
         with st.spinner(f"{current_agent.name} 생각 정리 중... (자동 진행)"):
             response = current_agent.generate_response(context)
+            
+        # 에러 처리
+        if response.startswith("Error generating response"):
+            st.error(f"⚠️ {current_agent.name} 오류 발생: {response}")
+            st.session_state.is_auto_playing = False
+            if st.button("🔄 다시 시도 (Retry)"):
+                st.rerun()
+            st.stop() # 여기서 중단
+
         
         # 5. 결과 저장 및 턴 넘기기
         st.session_state.history.append({"role": current_agent.name, "content": response})
