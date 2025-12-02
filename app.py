@@ -88,6 +88,8 @@ if "turn_count" not in st.session_state:
     st.session_state.turn_count = 0 
 if "is_auto_playing" not in st.session_state:
     st.session_state.is_auto_playing = False
+if "next_speaker_idx" not in st.session_state:
+    st.session_state.next_speaker_idx = 0 # Start with Moderator
 
 # --- 에이전트 생성 함수 ---
 def get_agents():
@@ -181,11 +183,41 @@ for message in st.session_state.history:
         """, unsafe_allow_html=True)
 
 # --- 토론 진행 로직 ---
-# 순서: 사회자(0) + [기술(1) -> 분석(2) -> 사회자(0)] * 10회 + 사회자(0)
-TURN_SEQUENCE = [0] + [1, 2, 0] * 10 + [0]
-MAX_TURNS = len(TURN_SEQUENCE)
+# 동적 턴 진행을 위해 TURN_SEQUENCE는 참고용(최대 턴수 계산)으로만 사용하거나, 
+# 이제는 next_speaker_idx 로 제어하므로 MAX_TURNS만 설정.
+# 기존: 사회자(0) + [기술(1) -> 분석(2) -> 사회자(0)] * 10회 + 사회자(0) = 32턴
+MAX_TURNS = 32
 
 col1, col2 = st.columns([1, 4])
+
+# 다음 발언자 결정 로직 함수
+def determine_next_speaker(current_idx, response_content, history):
+    # 0: 사회자, 1: 기술, 2: 분석
+    
+    if current_idx == 0: # 사회자 발언 후
+        # 발언 내용 분석하여 지목
+        if "시장" in response_content or "분석" in response_content:
+            return 2 # 시장분석가
+        elif "기술" in response_content or "전문가" in response_content:
+            return 1 # 기술전문가
+        else:
+            return 1 # 기본값 (기술전문가) - 혹은 랜덤
+            
+    elif current_idx == 1: # 기술전문가 발언 후
+        # 이전 발언자가 사회자였으면 -> 반론(시장분석가)
+        # 이전 발언자가 시장분석가였으면 -> 사회자 정리
+        if len(history) >= 1 and "사회자" in history[-1]['role']:
+             return 2
+        else:
+             return 0
+             
+    elif current_idx == 2: # 시장분석가 발언 후
+        if len(history) >= 1 and "사회자" in history[-1]['role']:
+             return 1
+        else:
+             return 0
+             
+    return 0 # Fallback
 
 with col1:
     # 자동 진행 상태 확인
@@ -199,8 +231,8 @@ with col1:
         # 하지만 Streamlit 특성상, rerun 루프 안에서 실행되어야 함.
         # 아래의 '진행 로직'을 함수화하거나, 여기서 직접 실행.
         
-        # 1. 현재 발언자 선정
-        current_agent_idx = TURN_SEQUENCE[st.session_state.turn_count]
+        # 1. 현재 발언자 선정 (Dynamic)
+        current_agent_idx = st.session_state.next_speaker_idx
         current_agent = agents[current_agent_idx]
         
         # 2. 문맥(Context) 구성
@@ -211,6 +243,9 @@ with col1:
         
         # 3. 상황별 프롬프트 주입
         if st.session_state.turn_count == MAX_TURNS - 1:
+            # 강제로 사회자가 마무리하도록 처리 필요할 수 있음
+            current_agent_idx = 0
+            current_agent = agents[0]
             context += """
             \n(중요 지시: 이제 토론을 마무리하고 평가를 내려야 합니다.
             다음 형식을 지켜서 답변하세요:
@@ -234,6 +269,9 @@ with col1:
         st.session_state.history.append({"role": current_agent.name, "content": response})
         st.session_state.turn_count += 1
         
+        # 6. 다음 발언자 결정 (Dynamic)
+        st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
+        
         # 잠시 대기 후 리런 (너무 빠르면 API 제한 걸릴 수 있음)
         time.sleep(1)
         st.rerun()
@@ -244,7 +282,7 @@ with col1:
             # 버튼 레이아웃 수정: 세로로 배치하여 깨짐 방지
             if st.button(f"🗣️ 다음 턴 (Next Turn) ({st.session_state.turn_count + 1}/{MAX_TURNS})", type="primary", use_container_width=True):
                 # 수동 진행 로직 (위와 동일, 중복 제거를 위해 함수화하면 좋지만 일단 복사)
-                current_agent_idx = TURN_SEQUENCE[st.session_state.turn_count]
+                current_agent_idx = st.session_state.next_speaker_idx
                 current_agent = agents[current_agent_idx]
                 context = "주제: 광고의 현재와 미래 (The Future of Advertising).\n\n[이전 대화 내용]\n"
                 recent_history = st.session_state.history[-10:]
@@ -252,6 +290,8 @@ with col1:
                     context += f"{msg['role']}: {msg['content']}\n"
                 
                 if st.session_state.turn_count == MAX_TURNS - 1:
+                    current_agent_idx = 0
+                    current_agent = agents[0]
                     context += "\n(중요 지시: 마무리 평가 및 결론 도출...)" # 간략화, 실제로는 위와 동일해야 함
                     # (위의 상세 프롬프트 복사 필요)
                     context += """
@@ -277,6 +317,9 @@ with col1:
                 
                 st.session_state.history.append({"role": current_agent.name, "content": response})
                 st.session_state.turn_count += 1
+                
+                st.session_state.next_speaker_idx = determine_next_speaker(current_agent_idx, response, st.session_state.history)
+                
                 st.rerun()
 
             st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True) # 간격 추가
@@ -296,6 +339,7 @@ with col1:
                 st.session_state.history = []
                 st.session_state.turn_count = 0
                 st.session_state.is_auto_playing = False
+                st.session_state.next_speaker_idx = 0
                 st.rerun()
 
 with col2:
